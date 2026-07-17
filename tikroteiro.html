@@ -429,7 +429,23 @@ CREATE TABLE hashtags (
             <label class="setup-label">Anon Public Key</label>
             <input class="setup-input" id="sb-key" placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."/>
           </div>
-          <button class="setup-btn" id="setup-btn" onclick="connectSupabase()">Conectar e testar</button>
+          <div class="setup-field" style="margin-top:24px;padding-top:24px;border-top:1px solid #ffffff08">
+  <div style="font-size:16px;font-weight:700;color:var(--text);margin-bottom:6px">🤖 Chave da IA (Anthropic)</div>
+  <p style="font-size:13px;color:var(--text2);margin-bottom:12px;line-height:1.5">Necessária para o chat gerar roteiros. Crie em <strong>console.anthropic.com</strong> → API Keys → Create Key</p>
+  <label class="setup-label">Sua API Key (começa com sk-ant-...)</label>
+  <input class="setup-input" id="ant-key-inp" type="password" placeholder="sk-ant-..."/>
+  <button onclick="saveAnthropicKey()" style="width:100%;padding:12px;background:var(--accent);color:#fff;border:none;border-radius:var(--rs);font-size:14px;font-weight:600;cursor:pointer;margin-top:10px">Salvar chave da IA</button>
+  <div class="key-status" id="ant-key-status"></div>
+</div>
+<div style="margin-top:24px;padding-top:24px;border-top:1px solid #ffffff08">
+  <div style="font-size:16px;font-weight:700;color:var(--text);margin-bottom:6px">🤖 Chave da IA (Anthropic)</div>
+  <p style="font-size:13px;color:var(--text2);margin-bottom:12px;line-height:1.5">Necessária para o chat gerar roteiros. Crie em <strong>console.anthropic.com</strong> → API Keys → Create Key</p>
+  <label class="setup-label">Sua API Key (começa com sk-ant-...)</label>
+  <input class="setup-input" id="ant-key-inp" type="password" placeholder="sk-ant-..."/>
+  <button onclick="saveAnthropicKey()" style="width:100%;padding:12px;background:var(--accent);color:#fff;border:none;border-radius:var(--rs);font-size:14px;font-weight:600;cursor:pointer;margin-top:10px">Salvar chave da IA</button>
+  <div class="key-status" id="ant-key-status"></div>
+</div>
+<button class="setup-btn" id="setup-btn" onclick="connectSupabase()">Conectar e testar</button>
           <div class="setup-err" id="setup-err"></div>
         </div>
       </div>
@@ -941,7 +957,7 @@ async function sendMsg(){
   msgs.appendChild(td);msgs.scrollTop=msgs.scrollHeight;
   try{
     let content=imgB64?[{type:'image',source:{type:'base64',media_type:imgType,data:imgB64}},{type:'text',text:msgText||'Analise este produto e crie um roteiro viral completo para TikTok Shop Brasil.'}]:msgText;
-    const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:1000,system:'Você é TikRoteiro, IA especialista em TikTok Shop Brasil. Quando receber imagem, analise o produto detalhadamente. Formato dos roteiros: 🎣 GANCHO (3s): [texto]\n🎬 ROTEIRO: [cenas numeradas]\n📣 CALL TO ACTION: [frase]\n#️⃣ HASHTAGS: [8 tags]\n💡 DICA: [produção]. Linguagem brasileira informal, máx 400 palavras.',messages:[{role:'user',content}]})});
+    const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':getAnthropicKey(),'anthropic-version':'2023-06-01'},body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:1000,system:'Você é TikRoteiro, IA especialista em TikTok Shop Brasil. Quando receber imagem, analise o produto detalhadamente. Formato dos roteiros: 🎣 GANCHO (3s): [texto]\n🎬 ROTEIRO: [cenas numeradas]\n📣 CALL TO ACTION: [frase]\n#️⃣ HASHTAGS: [8 tags]\n💡 DICA: [produção]. Linguagem brasileira informal, máx 400 palavras.',messages:[{role:'user',content}]})});
     const d=await res.json();
     document.getElementById('typing').remove();
     const reply=d.content.map(i=>i.text||'').join('');
@@ -1026,7 +1042,7 @@ async function generateVideo(){
   const aiPrompt=`Crie prompt técnico otimizado para ${apiInfo[st.selectedAPI].name} para vídeo TikTok de produto. Estilo: ${styleMap[st.vgStyle]}. ${st.vgImgB64?'Imagem do produto fornecida.':''} Descrição: "${prompt||'produto TikTok Shop'}". Gere: 1. PROMPT EM INGLÊS (técnico: câmera, iluminação, movimento) 2. CONFIGURAÇÕES RECOMENDADAS 3. DICA DE RESULTADO`;
   try{
     const content=st.vgImgB64?[{type:'image',source:{type:'base64',media_type:'image/jpeg',data:st.vgImgB64}},{type:'text',text:aiPrompt}]:aiPrompt;
-    const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:700,messages:[{role:'user',content}]})});
+    const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':getAnthropicKey(),'anthropic-version':'2023-06-01'},body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:700,messages:[{role:'user',content}]})});
     const d=await res.json();const reply=d.content.map(i=>i.text||'').join('');
     document.getElementById('gen-result-body').textContent=reply;
     document.getElementById('gen-result-note').textContent=`Cole este prompt em ${apiInfo[st.selectedAPI].name} com sua imagem para gerar o vídeo.`;
@@ -1044,7 +1060,7 @@ async function generateHashtags(){
   const prod=document.getElementById('hash-inp').value.trim();if(!prod)return;
   const btn=document.querySelector('.hash-gen-btn');btn.textContent='...';btn.disabled=true;
   try{
-    const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:400,messages:[{role:'user',content:`Gere hashtags TikTok Shop Brasil para: "${prod}". Responda APENAS JSON sem markdown: {"viral":["#tag1","#tag2","#tag3","#tag4","#tag5"],"niche":["#tag1","#tag2","#tag3","#tag4","#tag5"],"shop":["#tag1","#tag2","#tag3","#tag4"]}`}]})});
+    const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':getAnthropicKey(),'anthropic-version':'2023-06-01'},body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:400,messages:[{role:'user',content:`Gere hashtags TikTok Shop Brasil para: "${prod}". Responda APENAS JSON sem markdown: {"viral":["#tag1","#tag2","#tag3","#tag4","#tag5"],"niche":["#tag1","#tag2","#tag3","#tag4","#tag5"],"shop":["#tag1","#tag2","#tag3","#tag4"]}`}]})});
     const d=await res.json();
     const tags=JSON.parse(d.content.map(i=>i.text||'').join('').replace(/```json|```/g,'').trim());
     const map={viral:'hash-viral',niche:'hash-niche',shop:'hash-brand'};
@@ -1068,7 +1084,31 @@ function escHtml(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').
 function fmtDate(d){if(!d)return'—';try{return new Date(d).toLocaleDateString('pt-BR',{day:'2-digit',month:'short'});}catch(e){return'—';}}
 function copySQL(){const sql=`CREATE TABLE roteiros (\n  id uuid DEFAULT gen_random_uuid() PRIMARY KEY,\n  produto text,\n  conteudo text,\n  tipo text,\n  created_at timestamptz DEFAULT now()\n);\nCREATE TABLE videos (\n  id uuid DEFAULT gen_random_uuid() PRIMARY KEY,\n  produto text,\n  prompt text,\n  plataforma text,\n  estilo text,\n  created_at timestamptz DEFAULT now()\n);\nCREATE TABLE hashtags (\n  id uuid DEFAULT gen_random_uuid() PRIMARY KEY,\n  produto text,\n  tags jsonb,\n  created_at timestamptz DEFAULT now()\n);`;navigator.clipboard.writeText(sql).then(()=>showToast('SQL copiado!','ok'));}
 
-document.querySelectorAll('.filter-btn').forEach(b=>{b.onclick=()=>{document.querySelectorAll('.filter-btn').forEach(x=>x.classList.remove('active'));b.classList.add('active');};});
+function getAnthropicKey(){
+  return localStorage.getItem('anthropic_key')||'';
+}
+function saveAnthropicKey(){
+  const k=document.getElementById('ant-key-inp').value.trim();
+  if(!k||k.includes('•')){showToast('Cole sua chave corretamente','err');return;}
+  localStorage.setItem('anthropic_key',k);
+  document.getElementById('ant-key-inp').value='sk-ant-••••••••••';
+  showToast('Chave da IA salva! Chat pronto para usar.','ok');
+  const st=document.getElementById('ant-key-status');
+  st.className='key-status ok';st.textContent='✓ Chave configurada! O chat já funciona.';st.style.display='block';
+}
+document.querySelectorAll('.filter-btn').forEach(b=>{b.onclick=()=>{function getAnthropicKey(){
+  return localStorage.getItem('anthropic_key')||'';
+}
+function saveAnthropicKey(){
+  const k=document.getElementById('ant-key-inp').value.trim();
+  if(!k||k.includes('•')){showToast('Cole sua chave corretamente','err');return;}
+  localStorage.setItem('anthropic_key',k);
+  document.getElementById('ant-key-inp').value='sk-ant-••••••••••';
+  showToast('Chave da IA salva! Chat pronto para usar.','ok');
+  const st=document.getElementById('ant-key-status');
+  st.className='key-status ok';st.textContent='✓ Chave configurada! O chat já funciona.';st.style.display='block';
+}
+document.querySelectorAll('.filter-btn').forEach(x=>x.classList.remove('active'));b.classList.add('active');};});
 
 // ── INIT ──
 (function init(){
@@ -1080,6 +1120,20 @@ document.querySelectorAll('.filter-btn').forEach(b=>{b.onclick=()=>{document.que
       document.getElementById('db-dot').className='db-dot ok';
       refreshDBStats();
     }
+  }
+  const antkey=localStorage.getItem('anthropic_key');
+  if(antkey){
+    const el=document.getElementById('ant-key-status');
+    if(el){el.className='key-status ok';el.textContent='✓ Chave configurada! O chat já funciona.';el.style.display='block';}
+    const inp=document.getElementById('ant-key-inp');
+    if(inp)inp.value='sk-ant-••••••••••••••••';
+  }
+  const antkey=localStorage.getItem('anthropic_key');
+  if(antkey){
+    const el=document.getElementById('ant-key-status');
+    if(el){el.className='key-status ok';el.textContent='✓ Chave configurada! O chat já funciona.';el.style.display='block';}
+    const inp=document.getElementById('ant-key-inp');
+    if(inp)inp.value='sk-ant-••••••••••';
   }
   const rkey=localStorage.getItem('runway_key'),kkey=localStorage.getItem('kling_key');
   if(rkey)st.apiKeys.runway=rkey;if(kkey)st.apiKeys.kling=kkey;
